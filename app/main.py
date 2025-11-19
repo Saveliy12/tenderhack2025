@@ -1,24 +1,30 @@
+import sys
+from pathlib import Path
+
+# Добавляем корневую директорию проекта в PYTHONPATH
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 import uvicorn
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 
-from app.database import SessionLocal
+from app.routes import products
 
-app = FastAPI()
-
-router = APIRouter(
-    prefix="/currence"
+app = FastAPI(
+    title="TenderHack API",
+    description="API для работы с продуктами",
+    version="1.0.0"
 )
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+app.include_router(products.router)
+
 
 @app.get("/")
 async def root():
-    return "Hello"
+    """Корневой endpoint"""
+    return {"message": "TenderHack API", "version": "1.0.0"}
+
 
 if __name__ == '__main__':
-    uvicorn.run(app, host = '127.0.0.1',port = 8000)
+    uvicorn.run(app, host='127.0.0.1', port=8000)

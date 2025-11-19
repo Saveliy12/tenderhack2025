@@ -1,33 +1,29 @@
-import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 from app.conf import settings
 
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/tenderhack"
-engine = create_async_engine(DATABASE_URL)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, class_=AsyncSession)
-Base = sqlalchemy.orm.declarative_base()
+engine = create_async_engine(
+    settings.database_url,
+    echo=settings.debug
+)
 
-#     settings.database_url,
-#     connect_args={"check_same_thread": False}
-# )
+SessionLocal = async_sessionmaker(
+    engine,
+    class_=AsyncSession,
+    autoflush=False
+)
 
-# engine = create_engine(
-#     settings.database_url,
-#     connect_args={"check_same_thread": False}
-# )
+Base = declarative_base()
 
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# Base = declarative_base()
 
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
-# def init_db():
-#     Base.metadata.create_all(bind=engine)
-
+async def get_db() -> AsyncSession:
+    """Dependency для получения сессии БД"""
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
